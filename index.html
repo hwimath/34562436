@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>소인수분해 빈출유형(2)</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+  <style>
+    body {
+      background-color: white;
+      color: black;
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    .hidden {
+      display: none;
+    }
+    /* 에너지바 스타일: 검정색 테두리 안에 흰색 바 */
+    #energyBarContainer {
+      width: 100%;
+      height: 20px;
+      background-color: black;
+      margin-top: 10px;
+    }
+    #energyBar {
+      height: 100%;
+      background-color: white;
+      width: 100%;
+    }
+    button {
+      margin: 5px;
+      padding: 8px 12px;
+      font-size: 16px;
+      background-color: white;
+      color: black;
+      border: 1px solid black;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: black;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <!-- 시작 화면: 이름 입력 및 난이도 선택 -->
+  <div id="startScreen">
+    <h1>소인수분해 빈출유형(2)</h1>
+    <label>이름: <input type="text" id="playerName"></label><br><br>
+    <label>난이도 선택:</label><br>
+    <input type="radio" name="difficulty" value="최상" id="diff_최상">
+    <label for="diff_최상">최상 (20초, 20점)</label><br>
+    <input type="radio" name="difficulty" value="상" id="diff_상">
+    <label for="diff_상">상 (30초, 15점)</label><br>
+    <input type="radio" name="difficulty" value="중" id="diff_중">
+    <label for="diff_중">중 (40초, 13점)</label><br>
+    <input type="radio" name="difficulty" value="하" id="diff_하">
+    <label for="diff_하">하 (시간제한 없음, 10점)</label><br><br>
+    <button id="startButton">게임 시작</button>
+  </div>
+
+  <!-- 게임 화면 -->
+  <div id="gameScreen" class="hidden">
+    <div>
+      <span>전체 게임 시간: <span id="totalTime">0</span>초</span>
+      <span style="float: right;">남은 기회: <span id="lives">3</span></span>
+    </div>
+    <div id="questionContainer"></div>
+    <div id="energyBarContainer">
+      <div id="energyBar"></div>
+    </div>
+  </div>
+
+  <!-- 게임 종료 화면 및 점수 전송 -->
+  <div id="gameOverScreen" class="hidden">
+    <h2>게임 종료</h2>
+    <p>최종 점수: <span id="finalScore"></span></p>
+    <p>총 소요 시간: <span id="finalTime"></span>초</p>
+    <button id="sendScoreButton">점수전송</button>
+    <pre id="response"></pre>
+  </div>
+
+  <script>
+    // 초기 문제 배열 (원래 문제 6문항 + 추가문항 15문항 = 총 21문항)
+    let questions = [
+      {
+        // 원래 문제 15
+        question: "540의 약수 중 \\(5\\)의 배수의 개수는?",
+        options: ["5개", "6개", "8개", "12개", "15개"],
+        correctAnswer: "12개"
+      },
+      {
+        // 원래 문제 16
+        question: "\\(3^4 \\times 5^2\\)의 약수 중 두 번째로 큰 약수는?",
+        options: ["405", "675", "1215", "1875", "2025"],
+        correctAnswer: "675"
+      },
+      {
+        // 원래 문제 18 (\\(5^4 \\times 7^y\\)의 약수의 개수가 10개가 되도록 \\(y\\)를 구함)
+        question: "72의 약수의 개수를 \\(x\\)개라 하고, \\(5^4 \\times 7^y\\)의 약수의 개수가 10개일 때, \\(x \\times y\\)의 값은? (\\(x, y\\)는 자연수)",
+        options: ["12", "18", "24", "36", "48"],
+        correctAnswer: "12"
+      },
+      {
+        // 원래 문제 19
+        question: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?",
+        options: ["120", "180", "240", "300", "360"],
+        correctAnswer: "360"
+      },
+      {
+        // 원래 문제 20
+        question: "60에 자연수 \\(a\\)를 곱하여 어떤 자연수 \\(b\\)의 제곱이 되도록 할 때, 가장 작은 \\(a\\)의 값과 그때의 \\(b\\)의 값의 합은?",
+        options: ["15", "45", "60", "345", "915"],
+        correctAnswer: "45"
+      },
+      {
+        // 원래 문제 21
+        question: "\\(\\dfrac{3000}{a}\\)가 어떤 자연수의 제곱이 될 때, 이를 만족하는 가장 작은 자연수 \\(a\\)는?",
+        options: ["6", "12", "15", "20", "30"],
+        correctAnswer: "30"
+      },
+      {
+        // 추가문제 - Type A Variant A1
+        question: "360의 약수 중 \\(3\\)의 배수의 개수는?",
+        options: ["12", "14", "16", "18", "20"],
+        correctAnswer: "16"
+      },
+      {
+        // 추가문제 - Type A Variant A2
+        question: "840의 약수 중 \\(7\\)의 배수의 개수는?",
+        options: ["12", "14", "16", "18", "20"],
+        correctAnswer: "16"
+      },
+      {
+        // 추가문제 - Type A Variant A3
+        question: "1260의 약수 중 \\(5\\)의 배수의 개수는?",
+        options: ["16", "17", "18", "19", "20"],
+        correctAnswer: "18"
+      },
+      {
+        // 추가문제 - Type B Variant B1
+        question: "\\(N = 2^3 \\times 7^2\\)일 때, \\(N\\)의 약수 중 두 번째로 큰 약수는?",
+        options: ["98", "168", "196", "224", "280"],
+        correctAnswer: "196"
+      },
+      {
+        // 추가문제 - Type B Variant B2
+        question: "\\(N = 2^2 \\times 3^3\\)일 때, \\(N\\)의 약수 중 두 번째로 큰 약수는?",
+        options: ["36", "48", "54", "72", "81"],
+        correctAnswer: "54"
+      },
+      {
+        // 추가문제 - Type B Variant B3
+        question: "\\(N = 5^3 \\times 7\\)일 때, \\(N\\)의 약수 중 두 번째로 큰 약수는?",
+        options: ["125", "150", "175", "350", "525"],
+        correctAnswer: "175"
+      },
+      {
+        // 추가문제 - Type C Variant C1
+        question: "96의 약수의 개수를 \\(x\\)개라 하고, \\(B = 3^4 \\times 11^y\\)의 약수의 개수가 10개일 때, \\(x \\times y\\)의 값은?",
+        options: ["10", "12", "14", "16", "18"],
+        correctAnswer: "12"
+      },
+      {
+        // 추가문제 - Type C Variant C2
+        question: "60의 약수의 개수를 \\(x\\)개라 하고, \\(B = 2^4 \\times 13^y\\)의 약수의 개수가 10개일 때, \\(x \\times y\\)의 값은?",
+        options: ["12", "15", "18", "20", "24"],
+        correctAnswer: "12"
+      },
+      {
+        // 추가문제 - Type D Variant D1
+        question: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?",
+        options: ["360", "420", "480", "504", "540"],
+        correctAnswer: "360"
+      },
+      {
+        // 추가문제 - Type D Variant D2
+        question: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?",
+        options: ["720", "756", "792", "840", "864"],
+        correctAnswer: "792"
+      },
+      {
+        // 추가문제 - Type D Variant D3
+        question: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?",
+        options: ["840", "924", "1008", "1176", "1260"],
+        correctAnswer: "1176"
+      },
+      {
+        // 추가문제 - Type E Variant E1
+        question: "84에 자연수 \\(a\\)를 곱하여 어떤 자연수 \\(b\\)의 제곱이 되도록 할 때, 가장 작은 \\(a\\)의 값과 그때의 \\(b\\)의 값의 합은?",
+        options: ["42", "49", "56", "63", "70"],
+        correctAnswer: "63"
+      },
+      {
+        // 추가문제 - Type E Variant E2
+        question: "72에 자연수 \\(a\\)를 곱하여 어떤 자연수 \\(b\\)의 제곱이 되도록 할 때, 가장 작은 \\(a\\)의 값과 그때의 \\(b\\)의 값의 합은?",
+        options: ["10", "12", "14", "16", "18"],
+        correctAnswer: "14"
+      },
+      {
+        // 추가문제 - Type F Variant F1
+        question: "720에 대해, \\(\\dfrac{720}{a}\\)가 어떤 자연수의 제곱이 될 때, 이를 만족하는 가장 작은 자연수 \\(a\\)는?",
+        options: ["2", "3", "5", "6", "10"],
+        correctAnswer: "5"
+      },
+      {
+        // 추가문제 - Type F Variant F2
+        question: "2450에 대해, \\(\\dfrac{2450}{a}\\)가 어떤 자연수의 제곱이 될 때, 이를 만족하는 가장 작은 자연수 \\(a\\)는?",
+        options: ["1", "2", "5", "7", "10"],
+        correctAnswer: "2"
+      }
+    ];
+
+    // 보기를 섞기 위한 함수
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    // 전역 게임 변수
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let lives = 3;
+    let totalTime = 0;
+    let questionTimer;
+    let energyInterval;
+    let currentTimeLimit = 0;
+    let difficulty = "";
+    let scorePerQuestion = 0;
+
+    // 전체 게임 시간을 1초마다 갱신
+    let overallTimer = setInterval(() => {
+      if(document.getElementById('gameScreen').classList.contains('hidden')) return;
+      totalTime++;
+      document.getElementById('totalTime').innerText = totalTime;
+    }, 1000);
+
+    // 시작 버튼 클릭 이벤트
+    document.getElementById('startButton').addEventListener('click', () => {
+      const name = document.getElementById('playerName').value;
+      if (!name) {
+        alert("이름을 입력하세요.");
+        return;
+      }
+      const diffRadios = document.getElementsByName('difficulty');
+      let selectedDiff = "";
+      for (const radio of diffRadios) {
+        if (radio.checked) {
+          selectedDiff = radio.value;
+          break;
+        }
+      }
+      if (!selectedDiff) {
+        alert("난이도를 선택하세요.");
+        return;
+      }
+      difficulty = selectedDiff;
+      // 난이도에 따른 문제당 시간 제한과 점수 설정
+      if (difficulty === "최상") { currentTimeLimit = 20; scorePerQuestion = 20; }
+      else if (difficulty === "상") { currentTimeLimit = 30; scorePerQuestion = 15; }
+      else if (difficulty === "중") { currentTimeLimit = 40; scorePerQuestion = 13; }
+      else if (difficulty === "하") { currentTimeLimit = 99999; scorePerQuestion = 10; }
+
+      document.getElementById('startScreen').classList.add('hidden');
+      document.getElementById('gameScreen').classList.remove('hidden');
+      shuffleArray(questions);
+      showQuestion();
+    });
+
+    // 문제 표시 함수
+    function showQuestion() {
+      // 준비된 문제가 다 쓰이면 무한 모드용 랜덤문제 생성
+      if (currentQuestionIndex >= questions.length) {
+        const randomQuestion = generateRandomProblem();
+        questions.push(randomQuestion);
+      }
+      const qObj = questions[currentQuestionIndex];
+      const container = document.getElementById('questionContainer');
+      container.innerHTML = "";
+      const questionElem = document.createElement('div');
+      questionElem.innerHTML = "<p>" + qObj.question + "</p>";
+      container.appendChild(questionElem);
+      
+      // 보기는 섞어서 버튼으로 생성
+      const options = qObj.options.slice();
+      shuffleArray(options);
+      options.forEach(optionText => {
+        const btn = document.createElement('button');
+        btn.innerHTML = optionText;
+        btn.addEventListener('click', () => {
+          clearInterval(questionTimer);
+          clearInterval(energyInterval);
+          checkAnswer(optionText, qObj.correctAnswer);
+        });
+        container.appendChild(btn);
+      });
+      
+      // 타이머가 있는 난이도(하 제외)에서는 에너지바 애니메이션 시작
+      if (currentTimeLimit < 99999) {
+        let timeLeft = currentTimeLimit;
+        const energyBar = document.getElementById('energyBar');
+        energyBar.style.width = "100%";
+        energyInterval = setInterval(() => {
+          timeLeft -= 0.1;
+          let percentage = (timeLeft / currentTimeLimit) * 100;
+          if (percentage < 0) percentage = 0;
+          energyBar.style.width = percentage + "%";
+          if (timeLeft <= 0) {
+            clearInterval(energyInterval);
+            clearInterval(questionTimer);
+            alert("시간 초과! 정답: " + qObj.correctAnswer);
+            loseLife();
+          }
+        }, 100);
+      }
+      MathJax.typeset();
+      questionTimer = setTimeout(() => {}, currentTimeLimit * 1000);
+    }
+
+    // 답안 검사 함수
+    function checkAnswer(selected, correct) {
+      if (selected === correct) {
+        score += scorePerQuestion;
+        currentQuestionIndex++;
+        showQuestion();
+      } else {
+        alert("오답! 선택한 답: " + selected + ", 정답: " + correct);
+        loseLife();
+      }
+    }
+
+    // 기회 감소 및 게임 종료 처리
+    function loseLife() {
+      lives--;
+      document.getElementById('lives').innerText = lives;
+      if (lives <= 0) {
+        gameOver();
+      } else {
+        currentQuestionIndex++;
+        showQuestion();
+      }
+    }
+
+    // 게임 종료 함수
+    function gameOver() {
+      clearInterval(overallTimer);
+      document.getElementById('gameScreen').classList.add('hidden');
+      document.getElementById('gameOverScreen').classList.remove('hidden');
+      document.getElementById('finalScore').innerText = score;
+      document.getElementById('finalTime').innerText = totalTime;
+    }
+
+    // 무한 모드용 랜덤 문제 생성 함수
+    function generateRandomProblem() {
+      // 1부터 6까지 유형 중 무작위 선택
+      const type = Math.floor(Math.random() * 6) + 1;
+      let q = {};
+      if (type === 1) {
+        // Type A: \\(N\\)의 약수 중 \\(d\\)의 배수의 개수
+        const presets = [
+          {N: 360, factors: {2:3,3:2,5:1}},
+          {N: 540, factors: {2:2,3:3,5:1}},
+          {N: 840, factors: {2:3,3:1,5:1,7:1}},
+          {N: 1260, factors: {2:2,3:2,5:1,7:1}},
+          {N: 900, factors: {2:2,3:2,5:2}}
+        ];
+        const preset = presets[Math.floor(Math.random() * presets.length)];
+        const primeFactors = Object.keys(preset.factors).filter(p => preset.factors[p] > 0);
+        const d = primeFactors[Math.floor(Math.random() * primeFactors.length)];
+        const expD = preset.factors[d];
+        let prod = 1;
+        for (const p in preset.factors) {
+          if (p === d) continue;
+          prod *= (preset.factors[p] + 1);
+        }
+        const answer = expD * prod;
+        q.question = preset.N + "의 약수 중 \\(" + d + "\\)의 배수의 개수는?";
+        q.options = generateOptions(answer);
+        q.correctAnswer = String(answer);
+      } else if (type === 2) {
+        // Type B: \\(N = p^a \\times q^b\\)에서 두 번째로 큰 약수 구하기
+        const primesList = [[2,3], [2,5], [3,7], [2,7], [3,5]];
+        const pair = primesList[Math.floor(Math.random() * primesList.length)];
+        const a = Math.floor(Math.random() * 3) + 2; // 2~4
+        const b = Math.floor(Math.random() * 2) + 1; // 1~2
+        const p = pair[0], qVal = pair[1];
+        const N = Math.pow(p, a) * Math.pow(qVal, b);
+        const divisor = N / Math.min(p, qVal);
+        q.question = "\\(N = " + p + "^" + a + " \\times " + qVal + "^" + b + "\\)일 때, \\(N\\)의 약수 중 두 번째로 큰 약수는?";
+        q.options = generateOptions(divisor);
+        q.correctAnswer = String(divisor);
+      } else if (type === 3) {
+        // Type C: \\(A\\)의 약수의 개수를 \\(x\\)라 하고, \\(B = p^4 \\times q^y\\)의 약수의 개수가 10개일 때, \\(x \\times y\\) 구하기.
+        const Aoptions = [60, 72, 84, 90, 96];
+        const A = Aoptions[Math.floor(Math.random() * Aoptions.length)];
+        const x = countDivisors(A);
+        const y = 1; // \\( (4+1)\\times (y+1)=10 \\Rightarrow y=1 \\)
+        const product = x * y;
+        q.question = A + "의 약수의 개수를 \\(x\\)개라 하고, \\(B = p^4 \\times q^y\\)의 약수의 개수가 10개일 때, \\(x \\times y\\)의 값은?";
+        q.options = generateOptions(product);
+        q.correctAnswer = String(product);
+      } else if (type === 4) {
+        // Type D: 소인수가 3개이고 약수의 개수가 24인 자연수 중 가장 작은 자연수
+        const variants = [
+          {answer: 360, text: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?"},
+          {answer: 504, text: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?"},
+          {answer: 792, text: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?"},
+          {answer: 1176, text: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?"}
+        ];
+        const variant = variants[Math.floor(Math.random() * variants.length)];
+        q.question = variant.text;
+        q.options = generateOptions(variant.answer);
+        q.correctAnswer = String(variant.answer);
+      } else if (type === 5) {
+        // Type E: \\(N \\times a\\)가 제곱수가 되도록 하는 가장 작은 \\(a\\) 구하기.
+        const Noptions = [60, 84, 72, 90, 100];
+        const N = Noptions[Math.floor(Math.random() * Noptions.length)];
+        const a = smallestMultiplierForSquare(N);
+        const b = Math.sqrt(N * a);
+        const sum = a + b;
+        q.question = N + "에 자연수 \\(a\\)를 곱하여 어떤 자연수 \\(b\\)의 제곱이 되도록 할 때, 가장 작은 \\(a\\)의 값과 그때의 \\(b\\)의 값의 합은?";
+        q.options = generateOptions(sum);
+        q.correctAnswer = String(sum);
+      } else if (type === 6) {
+        // Type F: \\(\\dfrac{N}{a}\\)가 제곱수가 되도록 하는 가장 작은 \\(a\\) 구하기.
+        const Noptions = [3000, 720, 1800, 2450, 3600];
+        const N = Noptions[Math.floor(Math.random() * Noptions.length)];
+        const a = smallestDivisorForSquareQuotient(N);
+        q.question = N + "에 대해, \\(\\dfrac{" + N + "}{a}\\)가 어떤 자연수의 제곱이 될 때, 이를 만족하는 가장 작은 자연수 \\(a\\)는?";
+        q.options = generateOptions(a);
+        q.correctAnswer = String(a);
+      }
+      return q;
+    }
+
+    // 보기를 5지선다로 생성 (정답 포함)
+    function generateOptions(correct) {
+      let options = [String(correct)];
+      while(options.length < 5) {
+        let delta = Math.floor(Math.random() * 10) - 4; // -4 ~ +5
+        if(delta === 0) continue;
+        let option = Number(correct) + delta;
+        if(option <= 0) continue;
+        if(!options.includes(String(option))) {
+          options.push(String(option));
+        }
+      }
+      shuffleArray(options);
+      return options;
+    }
+
+    // \\(n\\)의 약수의 개수 (작은 수에 한정)
+    function countDivisors(n) {
+      let count = 0;
+      for (let i = 1; i <= n; i++) {
+        if(n % i === 0) count++;
+      }
+      return count;
+    }
+
+    // \\(N \\times a\\)가 제곱수가 되게 하는 가장 작은 \\(a\\) (각 소인수의 지수가 홀수면 \\(a\\)에 한 개씩 곱함)
+    function smallestMultiplierForSquare(N) {
+      const factors = primeFactorization(N);
+      let a = 1;
+      for (const p in factors) {
+        if (factors[p] % 2 !== 0) {
+          a *= p;
+        }
+      }
+      return a;
+    }
+
+    // \\(\\dfrac{N}{a}\\)가 제곱수가 되게 하는 가장 작은 \\(a\\) (\\(N\\)의 홀수 지수인 소인수들을 곱함)
+    function smallestDivisorForSquareQuotient(N) {
+      const factors = primeFactorization(N);
+      let a = 1;
+      for (const p in factors) {
+        if (factors[p] % 2 !== 0) {
+          a *= p;
+        }
+      }
+      return a;
+    }
+
+    // 작은 자연수에 대한 소인수분해 (간단 구현)
+    function primeFactorization(n) {
+      let factors = {};
+      let d = 2;
+      while(n > 1) {
+        while(n % d === 0) {
+          factors[d] = (factors[d] || 0) + 1;
+          n /= d;
+        }
+        d++;
+        if(d * d > n) {
+          if(n > 1) {
+            factors[n] = (factors[n] || 0) + 1;
+            break;
+          }
+        }
+      }
+      return factors;
+    }
+
+    // 점수전송 버튼 이벤트
+    document.getElementById('sendScoreButton').addEventListener('click', () => {
+      const name = document.getElementById('playerName').value;
+      saveData("소인수분해 빈출유형(2)", name, score, totalTime);
+    });
+
+    // 제공된 데이터 전송 함수
+    function saveData(game, name, score, elapsedTime) {
+        const FUNCTION_URL = "https://us-central1-record-f420d.cloudfunctions.net/report";
+
+        const requestData = {
+            game,
+            name,
+            score: parseInt(score, 10),
+            elapsedTime: parseInt(elapsedTime, 10)
+        };
+
+        try {
+            const response = fetch(FUNCTION_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            response.then(res => res.json()).then(responseData => {
+                if (response.ok) {
+                    document.getElementById('response').innerText = 
+                        "성공: " + JSON.stringify(responseData, null, 2);
+                } else {
+                    document.getElementById('response').innerText = 
+                        "오류: " + JSON.stringify(responseData, null, 2);
+                }
+            }).catch(error => {
+                console.error('요청 실패:', error);
+                document.getElementById('response').innerText = 
+                    "네트워크 오류: " + error.message;
+            });
+        } catch (error) {
+            console.error('요청 실패:', error);
+            document.getElementById('response').innerText = 
+                "네트워크 오류: " + error.message;
+        }
+    }
+  </script>
+</body>
+</html>
