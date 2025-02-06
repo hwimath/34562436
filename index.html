@@ -80,7 +80,7 @@
   </div>
 
   <script>
-    // 초기 문제 배열 (원래 문제 6문항 + 추가문항 15문항 = 총 21문항)
+    // 초기 문제 배열 (원래 문제 6문항 + 추가문항 – 중복된 문제는 제거하여 총 18문항)
     let questions = [
       {
         // 원래 문제 15
@@ -95,7 +95,7 @@
         correctAnswer: "675"
       },
       {
-        // 원래 문제 18 (\\(5^4 \\times 7^y\\)의 약수의 개수가 10개가 되도록 \\(y\\)를 구함)
+        // 원래 문제 18
         question: "72의 약수의 개수를 \\(x\\)개라 하고, \\(5^4 \\times 7^y\\)의 약수의 개수가 10개일 때, \\(x \\times y\\)의 값은? (\\(x, y\\)는 자연수)",
         options: ["12", "18", "24", "36", "48"],
         correctAnswer: "12"
@@ -165,24 +165,6 @@
         question: "60의 약수의 개수를 \\(x\\)개라 하고, \\(B = 2^4 \\times 13^y\\)의 약수의 개수가 10개일 때, \\(x \\times y\\)의 값은?",
         options: ["12", "15", "18", "20", "24"],
         correctAnswer: "12"
-      },
-      {
-        // 추가문제 - Type D Variant D1
-        question: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?",
-        options: ["360", "420", "480", "504", "540"],
-        correctAnswer: "360"
-      },
-      {
-        // 추가문제 - Type D Variant D2
-        question: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?",
-        options: ["720", "756", "792", "840", "864"],
-        correctAnswer: "792"
-      },
-      {
-        // 추가문제 - Type D Variant D3
-        question: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?",
-        options: ["840", "924", "1008", "1176", "1260"],
-        correctAnswer: "1176"
       },
       {
         // 추가문제 - Type E Variant E1
@@ -401,17 +383,10 @@
         q.options = generateOptions(product);
         q.correctAnswer = String(product);
       } else if (type === 4) {
-        // Type D: 소인수가 3개이고 약수의 개수가 24인 자연수 중 가장 작은 자연수
-        const variants = [
-          {answer: 360, text: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?"},
-          {answer: 504, text: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?"},
-          {answer: 792, text: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?"},
-          {answer: 1176, text: "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?"}
-        ];
-        const variant = variants[Math.floor(Math.random() * variants.length)];
-        q.question = variant.text;
-        q.options = generateOptions(variant.answer);
-        q.correctAnswer = String(variant.answer);
+        // Type D: 소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수
+        q.question = "소인수가 3개이고 약수의 개수가 24인 자연수 중에서 가장 작은 자연수는?";
+        q.options = generateOptions(360);
+        q.correctAnswer = "360";
       } else if (type === 5) {
         // Type E: \\(N \\times a\\)가 제곱수가 되도록 하는 가장 작은 \\(a\\) 구하기.
         const Noptions = [60, 84, 72, 90, 100];
@@ -509,7 +484,7 @@
       saveData("소인수분해 빈출유형(2)", name, score, totalTime);
     });
 
-    // 제공된 데이터 전송 함수
+    // 제공된 데이터 전송 함수 (fetch 응답을 올바르게 처리하도록 수정)
     function saveData(game, name, score, elapsedTime) {
         const FUNCTION_URL = "https://us-central1-record-f420d.cloudfunctions.net/report";
 
@@ -520,33 +495,28 @@
             elapsedTime: parseInt(elapsedTime, 10)
         };
 
-        try {
-            const response = fetch(FUNCTION_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            });
-
-            response.then(res => res.json()).then(responseData => {
-                if (response.ok) {
+        fetch(FUNCTION_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(res => {
+            return res.json().then(responseData => {
+                if (res.ok) {
                     document.getElementById('response').innerText = 
                         "성공: " + JSON.stringify(responseData, null, 2);
                 } else {
                     document.getElementById('response').innerText = 
                         "오류: " + JSON.stringify(responseData, null, 2);
                 }
-            }).catch(error => {
-                console.error('요청 실패:', error);
-                document.getElementById('response').innerText = 
-                    "네트워크 오류: " + error.message;
             });
-        } catch (error) {
+        })
+        .catch(error => {
             console.error('요청 실패:', error);
-            document.getElementById('response').innerText = 
-                "네트워크 오류: " + error.message;
-        }
+            document.getElementById('response').innerText = "네트워크 오류: " + error.message;
+        });
     }
   </script>
 </body>
